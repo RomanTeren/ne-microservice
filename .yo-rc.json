@@ -1,0 +1,39 @@
+{
+  "generator-jhipster": {
+    "promptValues": {
+      "packageName": "com.ne.microservice"
+    },
+    "jhipsterVersion": "6.8.0",
+    "applicationType": "microservice",
+    "baseName": "nemicroservice",
+    "packageName": "com.ne.microservice",
+    "packageFolder": "com/ne/microservice",
+    "serverPort": "8717",
+    "authenticationType": "uaa",
+    "uaaBaseName": "uaa",
+    "cacheProvider": "no",
+    "enableHibernateCache": false,
+    "websocket": false,
+    "databaseType": "no",
+    "devDatabaseType": "no",
+    "prodDatabaseType": "no",
+    "searchEngine": false,
+    "messageBroker": false,
+    "serviceDiscoveryType": "consul",
+    "buildTool": "gradle",
+    "enableSwaggerCodegen": false,
+    "jwtSecretKey": "Mjg2ZDQ3YzVhMDY0YTUyMGY3ZGI1OWQwNjllMmI3OThhNzlkY2RkYTA1NzQ4NjgzNjlkOWY2NzQwMWFmMDE2YzM5MDhjODA4ZDk3MDc3NzZkOWY5N2U5M2JjYjkzYmY1MGViZjkwNDJlNWY4ZjJmZjIzOGVjODE5ZTEzY2ZkNTM=",
+    "embeddableLaunchScript": false,
+    "creationTimestamp": 1588153617570,
+    "testFrameworks": ["gatling", "cucumber"],
+    "jhiPrefix": "jhi",
+    "entitySuffix": "",
+    "dtoSuffix": "DTO",
+    "otherModules": [],
+    "enableTranslation": false,
+    "clientPackageManager": "npm",
+    "blueprints": [],
+    "skipClient": true,
+    "skipUserManagement": true
+  }
+}
