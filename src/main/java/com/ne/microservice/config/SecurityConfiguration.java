@@ -1,14 +1,18 @@
 package com.ne.microservice.config;
 
-import com.ne.microservice.config.oauth2.OAuth2JwtAccessTokenConverter;
-import com.ne.microservice.config.oauth2.OAuth2Properties;
-import com.ne.microservice.security.oauth2.OAuth2SignatureVerifierClient;
 import com.ne.microservice.security.AuthoritiesConstants;
-
+import com.ne.microservice.security.DomainJwtAccessTokenConverter;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.client.loadbalancer.RestTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableResourceServer;
@@ -16,17 +20,24 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.R
 import org.springframework.security.oauth2.provider.token.TokenStore;
 import org.springframework.security.oauth2.provider.token.store.JwtAccessTokenConverter;
 import org.springframework.security.oauth2.provider.token.store.JwtTokenStore;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.client.RestTemplate;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.PublicKey;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
 
 @Configuration
 @EnableResourceServer
+@RequiredArgsConstructor
+@EnableGlobalMethodSecurity(prePostEnabled = true, securedEnabled = true)
 public class SecurityConfiguration extends ResourceServerConfigurerAdapter {
-    private final OAuth2Properties oAuth2Properties;
 
-    public SecurityConfiguration(OAuth2Properties oAuth2Properties) {
-        this.oAuth2Properties = oAuth2Properties;
-    }
+    private final DiscoveryClient discoveryClient;
 
     @Override
     public void configure(HttpSecurity http) throws Exception {
@@ -36,10 +47,10 @@ public class SecurityConfiguration extends ResourceServerConfigurerAdapter {
             .headers()
             .frameOptions()
             .disable()
-        .and()
+            .and()
             .sessionManagement()
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        .and()
+            .and()
             .authorizeRequests()
             .antMatchers("/api/**").authenticated()
             .antMatchers("/management/health").permitAll()
@@ -54,8 +65,13 @@ public class SecurityConfiguration extends ResourceServerConfigurerAdapter {
     }
 
     @Bean
-    public JwtAccessTokenConverter jwtAccessTokenConverter(OAuth2SignatureVerifierClient signatureVerifierClient) {
-        return new OAuth2JwtAccessTokenConverter(oAuth2Properties, signatureVerifierClient);
+    public JwtAccessTokenConverter jwtAccessTokenConverter(
+        @Qualifier("loadBalancedRestTemplate") RestTemplate keyUriRestTemplate)
+        throws CertificateException, IOException {
+
+        DomainJwtAccessTokenConverter converter = new DomainJwtAccessTokenConverter();
+        converter.setVerifierKey(getKeyFromConfigServer(keyUriRestTemplate));
+        return converter;
     }
 
     @Bean
@@ -70,5 +86,25 @@ public class SecurityConfiguration extends ResourceServerConfigurerAdapter {
     @Qualifier("vanillaRestTemplate")
     public RestTemplate vanillaRestTemplate() {
         return new RestTemplate();
+    }
+
+    private String getKeyFromConfigServer(RestTemplate keyUriRestTemplate) throws CertificateException, IOException {
+        // Load available UAA servers
+        discoveryClient.getServices();
+        HttpEntity<Void> request = new HttpEntity<Void>(new HttpHeaders());
+        String content = keyUriRestTemplate
+            .exchange("http://config/api/token_key", HttpMethod.GET, request, String.class).getBody();
+
+        if (StringUtils.isBlank(content)) {
+            throw new CertificateException("Received empty certificate from config.");
+        }
+
+        try (InputStream fin = new ByteArrayInputStream(content.getBytes())) {
+
+            CertificateFactory f = CertificateFactory.getInstance(Constants.CERTIFICATE);
+            X509Certificate certificate = (X509Certificate) f.generateCertificate(fin);
+            PublicKey pk = certificate.getPublicKey();
+            return String.format(Constants.PUBLIC_KEY, new String(Base64.getEncoder().encode(pk.getEncoded())));
+        }
     }
 }

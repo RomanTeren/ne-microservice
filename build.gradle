@@ -93,12 +93,15 @@ test {
     exclude "**/*IT*", "**/*IntTest*"
 
     testLogging {
-        events 'FAILED', 'SKIPPED'
+        events = ["passed", "failed", "skipped", "standardOut", "standardError"]
+        showStandardStreams = true
+        exceptionFormat = 'full'
     }
     // uncomment if the tests reports are not generated
     // see https://github.com/jhipster/generator-jhipster/pull/2771 and https://github.com/jhipster/generator-jhipster/pull/4484
     // ignoreFailures true
-    reports.html.enabled = false
+
+    reports.html.enabled = true
 }
 
 task integrationTest(type: Test) {
@@ -185,6 +188,17 @@ dependencies {
     if (!project.hasProperty("gae")) {
         implementation platform("io.github.jhipster:jhipster-dependencies:${jhipster_dependencies_version}")
     }
+
+    compile "com.icthh.xm.commons:xm-commons-security:${xm_commons_version}"
+    compile "com.icthh.xm.commons:xm-commons-logging-web:${xm_commons_version}"
+    compile "com.icthh.xm.commons:xm-commons-lep:${xm_commons_version}"
+    compile "com.icthh.xm.commons:xm-commons-ms-web:${xm_commons_version}"
+    compile "com.icthh.xm.commons:xm-commons-permission:${xm_commons_version}"
+    compile "com.icthh.xm.commons:xm-commons-ms-web:${xm_commons_version}"
+    compile "com.icthh.xm.commons:xm-commons-timeline:${xm_commons_version}"
+
+    compileOnly "org.projectlombok:lombok:${lombok_version}"
+    annotationProcessor "org.projectlombok:lombok:${lombok_version}"
 
     // Use ", version: jhipster_dependencies_version, changing: true" if you want
     // to use a SNAPSHOT release instead of a stable release
